@@ -14,7 +14,7 @@ public class UserService {
     private String password = System.getenv("DB_PASSWORD");
 
     public void findUser(String username) throws SQLException {
-        String query = "SELECT * FROM users WHERE name = ?";
+        String query = "SELECT id, name FROM users WHERE name = ?";
 
         try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, password);
              PreparedStatement ps = conn.prepareStatement(query)) {
