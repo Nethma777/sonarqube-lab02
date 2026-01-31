@@ -4,19 +4,47 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.util.function.Supplier;
 
 public class UserService {
 
     private static final String DB_URL = "jdbc:mysql://localhost/db";
     private static final String DB_USER = "root";
 
-    // In real systems this comes from env variables
-    private String password = System.getenv("DB_PASSWORD");
+   
+    private final String password;
+
+    
+    private final Supplier<Connection> connectionSupplier;
+
+    
+   
+    public UserService() {
+        this(System.getenv("DB_PASSWORD"));
+    }
+
+    
+    public UserService(String password) {
+        this.password = password;
+        this.connectionSupplier = () -> {
+            try {
+                return DriverManager.getConnection(DB_URL, DB_USER, this.password);
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
+        };
+    }
+
+    
+    public UserService(Supplier<Connection> connectionSupplier) {
+        this.password = System.getenv("DB_PASSWORD");
+        this.connectionSupplier = connectionSupplier;
+    }
 
     public void findUser(String username) throws SQLException {
         String query = "SELECT id, name FROM users WHERE name = ?";
 
-        try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, password);
+        try (Connection conn = connectionSupplier.get();
              PreparedStatement ps = conn.prepareStatement(query)) {
 
             ps.setString(1, username);
@@ -27,7 +55,7 @@ public class UserService {
     public void deleteUser(String username) throws SQLException {
         String query = "DELETE FROM users WHERE name = ?";
 
-        try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, password);
+        try (Connection conn = connectionSupplier.get();
              PreparedStatement ps = conn.prepareStatement(query)) {
 
             ps.setString(1, username);
